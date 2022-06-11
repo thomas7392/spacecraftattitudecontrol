@@ -8,10 +8,19 @@ import matplotlib.pyplot as plt
 import scipy.integrate as integrate
 
 
+Ku1 = 15
+Kt1 = 87
+
+Ku2 =  15
+Kt2  = 81
+
+Ku3 = 15
+Kt3 = 90
+
 
 # Dynamics and Kinematics of the euler angles describing the rotation between the body fixed frame (b) 
 # and the local vertical/horizontal reference frame (a)
-def EoM(t, y, control_torque, disturbance_torque, J):
+def EoM(t, y, control_torque, disturbance_torque, J, n):
     
     deriv = np.zeros(6)
     
@@ -40,23 +49,31 @@ def PID(angle, integrated, derivative, p, i, d):
 
 
 # Closed loop simulator 
-def simulate_attitude(initial_state, J
+def simulate_attitude(initial_state, J, reference_angles, n,
             disturbance_torque = np.array([0, 0, 0]),
             termination_time = 300, 
             dt_control = 2, 
-            p = [0, 0, 0],
-            i = [0., 0., 0],
-            d = [0., 0, 0], 
+            p = [0.8*Ku1, 0.8 * Ku2, 0.8 * Ku3],
+            i = [0, 0, 0],
+            d = [1.5 * 0.1 * Kt1 * Ku1, 1.5 * 0.1 * Kt2 * Ku2, 1.5 *  0.1 * Kt3 * Ku3],
             gyro_bias = False, 
             attitude_noise = False, 
-            state_estimation = False):
+            state_estimation = False, 
+            control = False):
     
     # Prepare simulations
     time = 0
     control_torque = np.array([0, 0, 0])
+
+    # Data storage
     state_history = np.array([np.concatenate((np.array([time]), initial_state))])
-    state_history_m = np.array([])
-    
+    control_torque_history = np.array([np.concatenate((np.array([time]), control_torque))])   
+
+    # Measured initial_state
+    state_history_m = np.copy(state_history)
+    if attitude_noise:
+        state_history_m[0,1:4] += np.random.normal(loc=0, scale=np.deg2rad(0.1), size = 3)
+
     # Control loop
     while time < termination_time:
 
@@ -67,7 +84,7 @@ def simulate_attitude(initial_state, J
                                      state_history[-1, 1:], 
                                      rtol = 1e-10, 
                                      atol = 1e-10,
-                                     args = [control_torque])
+                                     args = [control_torque, disturbance_torque, J, n])
 
         # Extract time and states except for initial state
         states = result.y.T[1:]
@@ -80,22 +97,19 @@ def simulate_attitude(initial_state, J
         #==================================
         # Simulate the measurements 
         # (with noise)
-        # TODO
         #==================================
         
-        # if attitude_noise:
-        #     attitude_measurements = states[:,1:4
-        # else:
-        #     attitude_measurements = state_history[
-        
-        # if gyro_noise: 
-            
-        #     #TODO
-        #     pass
-        # else:
-            
-        #     pass
-        
+        states_m = np.copy(states)
+
+        if attitude_noise:
+            states_m[:,:3] += np.random.normal(loc=0, scale=np.deg2rad(0.1), 
+                                                            size = (len(states), 3))
+        if gyro_bias: 
+            bias = np.deg2rad(np.array([0.1, -0.1, 0.15]))
+            states_m[:,3:] += times.reshape(-1, 1) * bias
+
+        states_m_with_time = np.concatenate((times.reshape(-1, 1), states_m), axis = 1) 
+        state_history_m = np.append(state_history_m, states_m_with_time, axis = 0)
 
         #==================================
         # State estimation (EKF)
@@ -109,39 +123,43 @@ def simulate_attitude(initial_state, J
         #==================================
         # Control (PD)
         #==================================
-        
-        # Extract proportional error
-        roll_error = 1 * (roll_reff - states[-1, 0] )
-        pitch_error = 1 * (pitch_reff - states[-1, 1])
-        yaw_error = 1 * ( yaw_reff - states[-1, 2])
 
-        # Extract derivative of error
-        roll_vel = -1 * EoM(0, state_history[-1,1:], [0, 0, 0])[0]
-        pitch_vel = -1 * EoM(0, state_history[-1,1:], [0, 0, 0])[1]
-        yaw_vel = -1 * EoM(0, state_history[-1,1:], [0, 0, 0])[2]
+        if control: 
+            # Extract proportional error
+            roll_error = 1 * (reference_angles[0] - states_m[-1, 0] )
+            pitch_error = 1 * (reference_angles[1] - states_m[-1, 1])
+            yaw_error = 1 * (reference_angles[2] - states_m[-1, 2])
 
-        # Extract integration of error
-        roll_int = -1*integrate.trapezoid(result.y.T[:,0], x=result.t)
-        pitch_int = -1*integrate.trapezoid(result.y.T[:,1], x=result.t)
-        yaw_int = -1*integrate.trapezoid(result.y.T[:,2], x=result.t)
+            # Extract derivative of error
+            roll_vel = -1 * EoM(0, state_history_m[-1,1:], [0, 0, 0], [0, 0, 0], J, n)[0]
+            pitch_vel = -1 * EoM(0, state_history_m[-1,1:], [0, 0, 0], [0, 0, 0], J, n)[1]
+            yaw_vel = -1 * EoM(0, state_history_m[-1,1:], [0, 0, 0], [0, 0, 0], J, n)[2]
 
-        # roll_int = -1 *  integrate.trapezoid(state_history[:,1], x=state_history[:,0])
-        # pitch_int = -1 * integrate.trapezoid(state_history[:,2], x=state_history[:,0])
-        # yaw_int = -1 * integrate.trapezoid(state_history[:,3], x=state_history[:,0])
+            # Extract integration of error
+            roll_int = -1*integrate.trapezoid(result.y.T[:,0], x=result.t)
+            pitch_int = -1*integrate.trapezoid(result.y.T[:,1], x=result.t)
+            yaw_int = -1*integrate.trapezoid(result.y.T[:,2], x=result.t)
 
-        # Find the control torque 
-        roll_moment = PID(roll_error, roll_int, roll_vel, p[0], i[0], d[0])
-        pitch_moment = PID(pitch_error, pitch_int, pitch_vel, p[1], i[1], d[1])
-        yaw_moment = PID(yaw_error, yaw_int, yaw_vel, p[2], i[2], d[2])
+            # roll_int = -1 *  integrate.trapezoid(state_history[:,1], x=state_history[:,0])
+            # pitch_int = -1 * integrate.trapezoid(state_history[:,2], x=state_history[:,0])
+            # yaw_int = -1 * integrate.trapezoid(state_history[:,3], x=state_history[:,0])
 
-        
+            # Find the control torque 
+            roll_moment = PID(roll_error, roll_int, roll_vel, p[0], i[0], d[0])
+            pitch_moment = PID(pitch_error, pitch_int, pitch_vel, p[1], i[1], d[1])
+            yaw_moment = PID(yaw_error, yaw_int, yaw_vel, p[2], i[2], d[2])
+            control_torque = np.array([roll_moment, pitch_moment, yaw_moment])
+
+        # Store control torque
+        control_torque_with_time = np.array([np.concatenate((np.array([time]), control_torque))])
+        control_torque_history = np.append(control_torque_history, control_torque_with_time, axis = 0)
+
         #========================================
         # Prepating to move to next control node
         #========================================
         
         # Update time and control torque and print progress
-        control_torque = np.array([roll_moment, pitch_moment, yaw_moment])
         time = time + dt_control
         print("Progress = ", time*100/termination_time, "%", end="\r")
         
-    return state_history
+    return state_history, state_history_m, control_torque_history

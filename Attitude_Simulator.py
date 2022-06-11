@@ -1,8 +1,10 @@
-from math import dist
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.integrate as integrate
 from utils import *
+import os
+
+current_dir = os.path.dirname(os.path.abspath("__file__"))
 
 #=========================================
 # Prepare the simulations
@@ -18,9 +20,7 @@ pitch_deriv_0 = 0 # omega 2
 yaw_deriv_0 = 0 # omega 3
 
 # Desired angles (reference angles)
-roll_reff = 0
-pitch_reff = 0
-yaw_reff = 0
+reference_angles = np.array([0, 0, 0])
 
 # Creater initial states
 initial_state = np.deg2rad(np.array([roll_0, 
@@ -32,7 +32,7 @@ initial_state = np.deg2rad(np.array([roll_0,
 
 # Data on spacecraft
 J = np.array([2700, 2300, 3000])
-disturbance_torque=np.array([0.001, 0.001, 0.001]) 
+disturbance_torque = np.array([0.001, 0.001, 0.001]) 
 #disturbance_torque=np.array([0, 0, 0]) 
 
 # Data on orbit
@@ -45,33 +45,63 @@ n = 2 * np.pi / period
 # Set Controller properties
 #=========================================
 
-
 # https://en.wikipedia.org/wiki/Ziegler%E2%80%93Nichols_method
 # Ziegler-Nichols method 
-Ku1 = 15
-Kt1 = 87
-
-Ku2 =  15
-Kt2  = 81
-
-Ku3 = 15
-Kt3 = 90
 
 
 #=========================================
 # Simulate controller 
 #=========================================
-state_history = simulate_attitude(initial_state, J
-                disturbance_torque = disturbance_torque,
-                termination_time = period, 
-                dt_control = 10,
-                p = [0.8*Ku1, 0.8 * Ku2, 0.8 * Ku3],
-                i = [0, 0, 0],
-                d = [1.5 * 0.1 * Kt1 * Ku1, 1.5 * 0.1 * Kt2 * Ku2, 1.5 *  0.1 * Kt3 * Ku3])
 
+# # Q3 performance 
+# state_history, state_history_m, control_torque = simulate_attitude(initial_state, J, reference_angles, n,
+#                 disturbance_torque = disturbance_torque,
+#                 termination_time = period, 
+#                 dt_control = 1,
+#                 gyro_bias = False, 
+#                 attitude_noise = False, 
+#                 state_estimation = False, 
+#                 control = True)
+
+# sub_directory = "/output/Q3/"
+# output_path = current_dir + sub_directory
+
+# #=========================================
+# # Store result
+# #=========================================
+# if os.path.exists(output_path):
+#         pass
+# else:
+#     os.makedirs(output_path)
+
+# np.savetxt(output_path + 'state_history.dat', state_history)
+# np.savetxt(output_path + 'control_torque.dat', control_torque)
+# np.savetxt(output_path + 'measurements.dat', state_history_m)
+
+
+# Q4 simulating measurment noise but no control. 
+state_history, state_history_m, control_torque = simulate_attitude(initial_state, J, reference_angles, n,
+                disturbance_torque = disturbance_torque,
+                termination_time = 150, 
+                dt_control = 2,
+                gyro_bias = True, 
+                attitude_noise = True, 
+                state_estimation = False, 
+                control = True)
+
+sub_directory = "/output/Q4/control/"
+output_path = current_dir + sub_directory
 
 #=========================================
 # Store result
 #=========================================
+if os.path.exists(output_path):
+        pass
+else:
+    os.makedirs(output_path)
+
+np.savetxt(output_path + 'state_history.dat', state_history)
+np.savetxt(output_path + 'control_torque.dat', control_torque)
+np.savetxt(output_path + 'measurements.dat', state_history_m)
 
 
