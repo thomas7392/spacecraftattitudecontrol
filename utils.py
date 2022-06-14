@@ -7,6 +7,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scipy.integrate as integrate
 
+# https://en.wikipedia.org/wiki/Ziegler%E2%80%93Nichols_method
+# Ziegler-Nichols method 
 
 Ku1 = 15
 Kt1 = 87
@@ -59,12 +61,13 @@ def simulate_attitude(initial_state, J, reference_angles, n,
             gyro_bias = False, 
             attitude_noise = False, 
             state_estimation = False, 
-            control = False):
+            control = False, 
+            bias = np.deg2rad(np.array([0.1, -0.1, 0.15]))):
     
     # Prepare simulations
     time = 0
     control_torque = np.array([0, 0, 0])
-
+    
     # Data storage
     state_history = np.array([np.concatenate((np.array([time]), initial_state))])
     control_torque_history = np.array([np.concatenate((np.array([time]), control_torque))])   
@@ -73,6 +76,8 @@ def simulate_attitude(initial_state, J, reference_angles, n,
     state_history_m = np.copy(state_history)
     if attitude_noise:
         state_history_m[0,1:4] += np.random.normal(loc=0, scale=np.deg2rad(0.1), size = 3)
+    if gyro_bias:
+        state_history_m[0,4:] += bias 
 
     # Control loop
     while time < termination_time:
@@ -96,7 +101,7 @@ def simulate_attitude(initial_state, J, reference_angles, n,
         
         #==================================
         # Simulate the measurements 
-        # (with noise)
+        # (with noise and bias)
         #==================================
         
         states_m = np.copy(states)
@@ -105,8 +110,8 @@ def simulate_attitude(initial_state, J, reference_angles, n,
             states_m[:,:3] += np.random.normal(loc=0, scale=np.deg2rad(0.1), 
                                                             size = (len(states), 3))
         if gyro_bias: 
-            bias = np.deg2rad(np.array([0.1, -0.1, 0.15]))
-            states_m[:,3:] += times.reshape(-1, 1) * bias
+            states_m[:,3:] += np.repeat(bias, len(states), axis = 0).reshape(-1, len(states)).T
+        
 
         states_m_with_time = np.concatenate((times.reshape(-1, 1), states_m), axis = 1) 
         state_history_m = np.append(state_history_m, states_m_with_time, axis = 0)

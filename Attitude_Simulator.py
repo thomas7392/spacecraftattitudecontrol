@@ -45,8 +45,7 @@ n = 2 * np.pi / period
 # Set Controller properties
 #=========================================
 
-# https://en.wikipedia.org/wiki/Ziegler%E2%80%93Nichols_method
-# Ziegler-Nichols method 
+
 
 
 #=========================================
@@ -82,14 +81,14 @@ n = 2 * np.pi / period
 # Q4 simulating measurment noise but no control. 
 state_history, state_history_m, control_torque = simulate_attitude(initial_state, J, reference_angles, n,
                 disturbance_torque = disturbance_torque,
-                termination_time = 150, 
+                termination_time = period, 
                 dt_control = 2,
                 gyro_bias = True, 
                 attitude_noise = True, 
                 state_estimation = False, 
-                control = True)
+                control = False)
 
-sub_directory = "/output/Q4/control/"
+sub_directory = "/output/Q4/nocontrol/"
 output_path = current_dir + sub_directory
 
 #=========================================
