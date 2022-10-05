@@ -46,8 +46,6 @@ n = 2 * np.pi / period
 #=========================================
 
 
-
-
 #=========================================
 # Simulate controller 
 #=========================================
@@ -83,12 +81,12 @@ state_history, state_history_m, control_torque = simulate_attitude(initial_state
                 disturbance_torque = disturbance_torque,
                 termination_time = period, 
                 dt_control = 2,
-                gyro_bias = True, 
+                gyro_bias = False, 
                 attitude_noise = True, 
                 state_estimation = False, 
-                control = False)
+                control = True)
 
-sub_directory = "/output/Q4/nocontrol/"
+sub_directory = "/output/Q5/zerobias/"
 output_path = current_dir + sub_directory
 
 #=========================================
