@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.integrate as integrate
-from utils import *
+from closed_loop_simulator import simulate_attitude
 import os
 
 current_dir = os.path.dirname(os.path.abspath("__file__"))
@@ -23,17 +23,17 @@ yaw_deriv_0 = 0 # omega 3
 reference_angles = np.array([0, 0, 0])
 
 # Creater initial states
-initial_state = np.deg2rad(np.array([roll_0, 
+initial_state = np.deg2rad(np.array([roll_0,
                           pitch_0,
-                          yaw_0, 
-                          roll_deriv_0, 
+                          yaw_0,
+                          roll_deriv_0,
                           pitch_deriv_0,
                           yaw_deriv_0]))
 
 # Data on spacecraft
 J = np.array([2700, 2300, 3000])
-disturbance_torque = np.array([0.001, 0.001, 0.001]) 
-#disturbance_torque=np.array([0, 0, 0]) 
+disturbance_torque = np.array([0.001, 0.001, 0.001])
+#disturbance_torque=np.array([0, 0, 0])
 
 # Data on orbit
 mu = 3.986004418e14
@@ -47,17 +47,17 @@ n = 2 * np.pi / period
 
 
 #=========================================
-# Simulate controller 
+# Simulate controller
 #=========================================
 
-# # Q3 performance 
+# # Q3 performance
 # state_history, state_history_m, control_torque = simulate_attitude(initial_state, J, reference_angles, n,
 #                 disturbance_torque = disturbance_torque,
-#                 termination_time = period, 
+#                 termination_time = period,
 #                 dt_control = 1,
-#                 gyro_bias = False, 
-#                 attitude_noise = False, 
-#                 state_estimation = False, 
+#                 gyro_bias = False,
+#                 attitude_noise = False,
+#                 state_estimation = False,
 #                 control = True)
 
 # sub_directory = "/output/Q3/"
@@ -76,14 +76,14 @@ n = 2 * np.pi / period
 # np.savetxt(output_path + 'measurements.dat', state_history_m)
 
 
-# Q4 simulating measurment noise but no control. 
+# Q4 simulating measurment noise but no control.
 state_history, state_history_m, control_torque = simulate_attitude(initial_state, J, reference_angles, n,
                 disturbance_torque = disturbance_torque,
-                termination_time = period, 
+                termination_time = period,
                 dt_control = 2,
-                gyro_bias = False, 
-                attitude_noise = True, 
-                state_estimation = False, 
+                gyro_bias = False,
+                attitude_noise = True,
+                state_estimation = False,
                 control = True)
 
 sub_directory = "/output/Q5/zerobias/"
