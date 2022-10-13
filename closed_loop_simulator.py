@@ -13,6 +13,7 @@ from measurements import simulate_measurements
 from control import simulate_control
 from state_estimation import kalman_filter
 
+
 def simulate_attitude(initial_state,
             J,
             reference_angles,
@@ -20,9 +21,6 @@ def simulate_attitude(initial_state,
             disturbance_torque = np.array([0, 0, 0]),
             termination_time = 300,
             dt_control = 2,
-            p = [0.8*Ku1, 0.8 * Ku2, 0.8 * Ku3],
-            i = [0, 0, 0],
-            d = [factor * 0.1 * Kt1 * Ku1, factor * 0.1 * Kt2 * Ku2, factor *  0.1 * Kt3 * Ku3],
             gyro_bias = False,
             attitude_noise = False,
             state_estimation = False,
@@ -31,7 +29,7 @@ def simulate_attitude(initial_state,
 
     '''
     The closed loop simulator for an earth observing controlled satellite
-    in a circular orbit
+    in a circular orbit.
     '''
 
     # Prepare simulations
@@ -51,6 +49,11 @@ def simulate_attitude(initial_state,
 
     # Prepare estimated dynamics data storage
     state_history_e = np.copy(state_history_m)
+    bias_history_e = np.array([[time, 0, 0, 0]])
+
+    # Prepare initial covariance
+    P0 = np.diag([np.deg2rad(0.1), np.deg2rad(0.1), np.deg2rad(0.1), 1, 1, 1])
+    covariance_history_e = np.array([P0])
 
     # Closed control loop
     while time < termination_time:
@@ -84,28 +87,42 @@ def simulate_attitude(initial_state,
 
         #==================================
         # State estimation (EKF)
-        # TODO
         #==================================
 
         if state_estimation:
-            estimated_state = kalman_filter(estimated_state[-1], states_m)
+            estimated_state, estimated_bias, estimated_covariance = kalman_filter(state_history_e[-1,1:],
+                                                            bias_history_e[-1,1:],
+                                                            state_history_m[-1,1:],
+                                                            state_history_m[-2,1:],
+                                                            covariance_history_e[-1],
+                                                            dt_control,
+                                                            control_torque,
+                                                            J,
+                                                            n)
+
         else:
-            estimated_state = states_m
+            estimated_state = np.copy(states_m)
+            estimated_bias = np.array([0, 0, 0])
+            estimated_covariance = np.zeros()
 
         estimated_state_with_time = np.array([np.concatenate((np.array([time]), estimated_state))])
+        estimated_bias_with_time = np.array([np.concatenate((np.array([time]), estimated_bias))])
+
         state_history_e = np.append(state_history_e, estimated_state_with_time, axis = 0)
+        bias_history_e = np.append(bias_history_e, estimated_bias_with_time, axis = 0)
+        covariance_history_e = np.append(covariance_history_e, np.array([estimated_covariance]), axis = 0)
 
         #==================================
         # Control (PD)
         #==================================
 
         if control:
-            control_torque = simulate_control(states_m[-1], reference_angles, J, n)
+            control_torque = simulate_control(estimated_state, reference_angles, J, n)
         else:
             control_torque = np.zeros(3)
 
         # Store control torque
-        control_torque_with_time = v
+        control_torque_with_time = np.array([np.concatenate((np.array([time]), control_torque))])
         control_torque_history = np.append(control_torque_history, control_torque_with_time, axis = 0)
 
         #========================================
@@ -116,4 +133,5 @@ def simulate_attitude(initial_state,
         time = time + dt_control
         print("Progress = %.2f %%" % (time*100/termination_time), end="\r")
 
-    return state_history, state_history_m, control_torque_history
+    return state_history, state_history_m, control_torque_history,\
+            state_history_e, bias_history_e, covariance_history_e

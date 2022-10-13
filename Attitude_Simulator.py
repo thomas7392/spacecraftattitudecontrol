@@ -76,17 +76,53 @@ n = 2 * np.pi / period
 # np.savetxt(output_path + 'measurements.dat', state_history_m)
 
 
-# Q4 simulating measurment noise but no control.
-state_history, state_history_m, control_torque = simulate_attitude(initial_state, J, reference_angles, n,
+# # Q4 simulating measurment noise and control.
+# state_history, state_history_m, control_torque_history,\
+#     state_history_e, bias_history_e, covariance_history_e = simulate_attitude(initial_state,
+#                 J,
+#                 reference_angles,
+#                 n,
+#                 disturbance_torque = disturbance_torque,
+#                 termination_time = period,
+#                 dt_control = 2,
+#                 gyro_bias = True,
+#                 attitude_noise = True,
+#                 state_estimation = False,
+#                 control = True)
+
+# sub_directory = "/output/Q4/zerobias/"
+# output_path = current_dir + sub_directory
+
+# #=========================================
+# # Store result
+# #=========================================
+# if os.path.exists(output_path):
+#         pass
+# else:
+#     os.makedirs(output_path)
+
+# np.savetxt(output_path + 'state_history.dat', state_history)
+# np.savetxt(output_path + 'control_torque.dat', control_torque)
+# np.savetxt(output_path + 'measurements.dat', state_history_m)
+
+
+
+# Q8 simulating measurment noise, control and state estimation (EKF)
+state_history, state_history_m, control_torque_history,\
+    state_history_e, bias_history_e, covariance_history_e = simulate_attitude(
+                initial_state,
+                J,
+                reference_angles,
+                n,
                 disturbance_torque = disturbance_torque,
                 termination_time = period,
                 dt_control = 2,
-                gyro_bias = False,
+                gyro_bias = True,
                 attitude_noise = True,
-                state_estimation = False,
+                state_estimation = True,
                 control = True)
 
-sub_directory = "/output/Q5/zerobias/"
+sub_directory = "/output/Q8/attempt2/"
 output_path = current_dir + sub_directory
 
 #=========================================
@@ -98,7 +134,11 @@ else:
     os.makedirs(output_path)
 
 np.savetxt(output_path + 'state_history.dat', state_history)
-np.savetxt(output_path + 'control_torque.dat', control_torque)
+np.savetxt(output_path + 'control_torque.dat', control_torque_history)
 np.savetxt(output_path + 'measurements.dat', state_history_m)
+np.savetxt(output_path + 'state_history_e.dat', state_history_e)
+np.savetxt(output_path + 'bias_history_e.dat', bias_history_e)
+np.save(output_path + 'covariance_history_e', covariance_history_e)
+
 
 

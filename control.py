@@ -53,8 +53,6 @@ def simulate_control(estimated_state, reference_angles, J, n):
     pitch_int = 0
     yaw_int = 0
 
-    print(roll_error, roll_int, roll_vel, p[0], i[0], d[0])
-
     # Find the control torque
     roll_moment = PID(roll_error, roll_int, roll_vel, p[0], i[0], d[0])
     pitch_moment = PID(pitch_error, pitch_int, pitch_vel, p[1], i[1], d[1])
