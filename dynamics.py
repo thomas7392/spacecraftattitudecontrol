@@ -4,8 +4,6 @@ This file wil contain real world dynamics of the attitude of the S/C
 
 # Imports
 import numpy as np
-import matplotlib.pyplot as plt
-from pandas import Timestamp
 import scipy.integrate as integrate
 
 
@@ -65,5 +63,7 @@ def simulate_dynamics(t0,
      states = result.y.T[1:]
      times = result.t[1:]
 
-     return states, times
+     states_with_time = np.concatenate((times.reshape(-1, 1), states), axis = 1)
+
+     return states_with_time
 

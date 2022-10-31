@@ -6,15 +6,17 @@ import numpy as np
 from dynamics import EoM
 
 Ku1 = 15
-Kt1 = 87
+Kt1 = 85 #87
 
 Ku2 =  15
-Kt2  = 81
+Kt2  = 79 #81
 
 Ku3 = 15
-Kt3 = 90
+Kt3 = 89 #90
 
-factor = 2.3
+factor = 2.2
+#factor = 0
+
 
 def PID(angle,
         integrated,
