@@ -5,21 +5,15 @@ A kalman filter for attitude state estimation
 import numpy as np
 from dynamics import EoM
 
-def propagate_state(old_attitude, old_bias, observations, observations_old,
+def propagate_state(old_attitude, old_bias, observations_old,
                     control_torque, J, n, dt):
     '''
-    Propagate the state. The prediction step.
+    Propagate the state using the original EoM from dynamics. The prediction step.
     '''
 
     predicted_state = np.zeros(6)
-
-    # predicted_state[:3] = old_attitude[:3] +\
-    #      kinematics_with_bias(np.concatenate([old_attitude[:3], observations_old[3:]]), \
-    #                         old_bias, n) * dt
-
-    predicted_state[:3] = old_attitude[:3] +  EoM(0, np.concatenate((old_attitude[:3], observations_old[3:] - old_bias)),
+    predicted_state[:3] = old_attitude[:3] + EoM(0, np.concatenate((old_attitude[:3], observations_old[3:] - old_bias)),
                             control_torque, np.array([0, 0, 0]), J, n)[:3] * dt
-
     predicted_state[3:] = old_bias
 
     return predicted_state
@@ -73,8 +67,6 @@ def makeH():
     Create the linearized observation matrix (in this particular case not linearized)
     '''
 
-    # H = np.diag([1, 1, 1, -1, -1, -1])
-
     H = np.array([[1, 0, 0, 0, 0, 0],
                   [0, 1, 0, 0, 0, 0],
                   [0, 0, 1, 0, 0, 0]])
@@ -94,7 +86,8 @@ def makeQ(r1, r2):
     Create the process noise matrix
     '''
 
-    diag = np.concatenate((r1*np.ones(3), r2*np.ones(3)))
+    diag = np.concatenate(([1.8518518518518518e-07, 2.173913043478261e-07, 1.6666666666666668e-07],
+                            r2*np.ones(3)))
     Q = np.diag(diag)
     return Q
 
@@ -107,11 +100,14 @@ def kalman_filter(old_attitude,
                 control_torque,
                 J,
                 n,
-                r1 = 1e-5,
-                r2 = 1e-5):
-
+                r1 = 1e-8,
+                r2 = 1e-8):
+    '''
+    The kalman filter for estimating the euler angles of the spacecraft and the bias of the
+    rotational-rate-measureing gyro.
+    '''
     # Propagate the state
-    predict_state = propagate_state(old_attitude, old_bias, observations, observations_old,
+    predict_state = propagate_state(old_attitude, old_bias, observations_old,
                                                 control_torque, J, n, dt_control)
 
     # Create the linearized state transition matrix and process noise matrix
@@ -130,7 +126,6 @@ def kalman_filter(old_attitude,
 
     # Calculate kalman gain matrix
     K = P_predict @ H.T @ np.linalg.pinv(H @ P_predict @ H.T + R)
-    # K = np.linalg.solve((H @ P_predict @ H.T) + R, P_predict @ H.T)
 
     # Update state estimation
     update_state = predict_state + K @ dy
